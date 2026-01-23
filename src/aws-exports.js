@@ -8,13 +8,13 @@ const awsconfig = {
 
       loginWith: {
         oauth: {
-                  domain: "ap-south-1stfmvl7aq.auth.ap-south-1.amazoncognito.com",
-                  scope: ["openid", "email", "profile"],
-                  redirectSignIn: "https://file-sharing-app-with-aws-cloud.vercel.app/",
-                  redirectSignOut: "https://file-sharing-app-with-aws-cloud.vercel.app/",
-                  responseType: "code",
-}
+          domain: "ap-south-1stfmvl7aq.auth.ap-south-1.amazoncognito.com",
+          scopes: ["openid", "email", "profile"],
 
+          redirectSignIn: ["https://file-sharing-app-with-aws-cloud.vercel.app/"],
+          redirectSignOut: ["https://file-sharing-app-with-aws-cloud.vercel.app/"],
+          responseType: "code",
+        },
       },
     },
   },
