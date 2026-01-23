@@ -262,7 +262,7 @@ export default function App() {
   const handleLogout = async () => {
     try {
       await signOut({ global: true });
-      window.location.href = "http://localhost:5173/";
+      window.location.href = "https://file-sharing-app-with-aws-cloud.vercel.app/";
     } catch (e) {
       console.log(e);
       alert("Logout failed ❌");
