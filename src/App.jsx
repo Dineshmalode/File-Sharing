@@ -8,7 +8,6 @@ import {
   signInWithRedirect,
   signOut,
   getCurrentUser,
-  fetchUserAttributes,
   fetchAuthSession,
 } from "aws-amplify/auth";
 
@@ -151,7 +150,7 @@ export default function App() {
     }
   };
 
-  // ✅ requests for me (FIXED: no default param bug)
+  // ✅ requests for me
   const loadRequests = async (subParam) => {
     try {
       if (!subParam) return;
@@ -165,7 +164,7 @@ export default function App() {
     }
   };
 
-  // ✅ shared with me (FIXED)
+  // ✅ shared with me
   const loadSharedWithMe = async (subParam) => {
     try {
       if (!subParam) return;
@@ -185,22 +184,23 @@ export default function App() {
 
     const init = async () => {
       try {
-        // ✅ IMPORTANT: finish redirect flow
-        await fetchAuthSession();
+        // ✅ finish redirect flow + session
+        const session = await fetchAuthSession();
 
         const user = await getCurrentUser();
-
-        let email = "";
-        try {
-          const attrs = await fetchUserAttributes();
-          email = attrs?.email || "";
-        } catch (e) {
-          console.log("fetchUserAttributes failed:", e);
-          email = "";
-        }
-
         const sub = user?.userId;
         if (!sub) throw new Error("No sub");
+
+        // ✅ MOST RELIABLE: email from token payload
+        const idPayload = session?.tokens?.idToken?.payload || {};
+        const accessPayload = session?.tokens?.accessToken?.payload || {};
+
+        const email =
+          idPayload.email ||
+          accessPayload.email ||
+          idPayload["cognito:username"] ||
+          user?.username ||
+          "";
 
         setIsLoggedIn(true);
         setUserSub(sub);
@@ -237,7 +237,7 @@ export default function App() {
     };
   }, []);
 
-  // ✅ auto refresh requests when userSub becomes available (FIXED)
+  // ✅ auto refresh requests when userSub becomes available
   useEffect(() => {
     if (!userSub) return;
     loadRequests(userSub);
@@ -258,11 +258,11 @@ export default function App() {
     }
   };
 
-  // ✅ LOGOUT
+  // ✅ LOGOUT (Localhost)
   const handleLogout = async () => {
     try {
       await signOut({ global: true });
-      window.location.href = "https://file-sharing-app-with-aws-cloud.vercel.app/";
+      window.location.href = "http://localhost:5173/";
     } catch (e) {
       console.log(e);
       alert("Logout failed ❌");
@@ -355,7 +355,7 @@ export default function App() {
         method: "POST",
         body: JSON.stringify({
           fromSub: userSub,
-          fromEmail: userEmail || "unknown", // ✅ FIXED
+          fromEmail: userEmail || userSub, // ✅ FIXED (no unknown)
           toSub: u.userSub,
           toEmail: u.email,
           filePath: shareFile.path,
@@ -366,7 +366,6 @@ export default function App() {
       alert(`Request sent ✅ to ${u.email}`);
       setShareModalOpen(false);
 
-      // ✅ auto refresh my requests list too
       loadRequests(userSub);
     } catch (e) {
       console.log(e);
@@ -376,7 +375,6 @@ export default function App() {
     }
   };
 
-  // ✅ accept/reject
   const acceptReq = async (req) => {
     try {
       await api("/share/accept", {
@@ -501,7 +499,9 @@ export default function App() {
         <h1>Dashboard</h1>
         <p style={{ opacity: 0.9 }}>
           Welcome back ✅ <br />
-          <span style={{ fontSize: "13px", opacity: 0.8 }}>{userEmail || userSub}</span>
+          <span style={{ fontSize: "13px", opacity: 0.8 }}>
+            {userEmail || userSub}
+          </span>
         </p>
       </header>
 
