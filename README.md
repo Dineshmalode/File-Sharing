@@ -1,16 +1,73 @@
-# React + Vite
+# ☁️ Cloud File Storage & Sharing Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A secure cloud-based file storage and sharing web application built using **React** and **AWS Cloud Services**.
 
-Currently, two official plugins are available:
+This project allows users to authenticate securely, upload files to cloud storage, share files with other users, and manage access requests — all through a modern web dashboard.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🚀 Live Demo
+👉 https://file-sharing-app-with-aws-cloud.vercel.app/
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 📸 Application Screenshots
+
+### 🔐 Login Page
+![Login](screenshots/loginpage.png)
+
+### 📊 Dashboard
+![Dashboard](screenshots/Dashboard.png)
+
+### 📁 File Upload & List
+![Files](screenshots/FileUpload.png)
+
+### 🤝 Sharing Requests
+![Sharing](screenshots/SharingReq.png)
+
+### 🤝 Incoming Requests
+![InComing Sharing](screenshots/Requestes.png)
+
+---
+
+## ✨ Features
+
+- Secure user authentication using AWS Cognito  
+- Upload, download, preview, and delete files  
+- Cloud storage using AWS S3  
+- Share files with other registered users  
+- Accept / reject file sharing requests  
+- Dashboard showing storage usage  
+- Real-time file listing  
+- Responsive UI built with React  
+- Fully deployed frontend and backend  
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+- React + Vite  
+- JavaScript  
+- AWS Amplify SDK  
+
+### Backend / Cloud
+- AWS Cognito (Authentication)  
+- AWS S3 (File Storage)  
+- DynamoDB (Users & Share Requests)  
+- AWS Lambda (Backend APIs)  
+- AWS API Gateway  
+- AWS Identity Pool  
+
+### Deployment
+- Vercel (Frontend Hosting)
+
+---
+
+## 🏗 Architecture Overview
+
+## Author
+- Dinesh Malode
+- Aspiring AWS / DevOps Engineer & Learning Cloud
+
