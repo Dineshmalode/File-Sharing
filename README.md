@@ -66,6 +66,7 @@ This project allows users to authenticate securely, upload files to cloud storag
 ---
 
 ## 🏗 Architecture Overview
+![Files](screenshots/a.jpg)
 
 ## Author
 - Dinesh Malode
