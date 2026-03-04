@@ -144,7 +144,7 @@ export default function App() {
       setUsersList(arr.filter((u) => u.userSub !== mySub)); // exclude me
     } catch (e) {
       console.log("loadUsers error:", e);
-      alert("Users list loading failed ❌");
+      alert("Users list loading failed ");
     } finally {
       setUsersLoading(false);
     }
@@ -265,7 +265,7 @@ export default function App() {
       window.location.href = "https://file-sharing-app-with-aws-cloud.vercel.app/";
     } catch (e) {
       console.log(e);
-      alert("Logout failed ❌");
+      alert("Logout failed ");
     }
   };
 
@@ -295,12 +295,12 @@ export default function App() {
       }).result;
 
       setSelectedFile(null);
-      alert("Uploaded ✅\n" + result.path);
+      alert("Uploaded....!\n" + result.path);
 
       loadFiles(userSub, currentFolder);
     } catch (err) {
       console.log("Upload error:", err);
-      alert("Upload failed ❌");
+      alert("Upload failed");
     } finally {
       setUploading(false);
     }
@@ -328,7 +328,7 @@ export default function App() {
       else setPreviewType("other");
     } catch (e) {
       console.log(e);
-      alert("Preview failed ❌");
+      alert("Preview failed ");
       setPreviewOpen(false);
     } finally {
       setPreviewLoading(false);
@@ -369,7 +369,7 @@ export default function App() {
       loadRequests(userSub);
     } catch (e) {
       console.log(e);
-      alert("Share request failed ❌");
+      alert("Share request failed ");
     } finally {
       setShareSending(false);
     }
@@ -385,12 +385,12 @@ export default function App() {
         }),
       });
 
-      alert("Accepted ✅");
+      alert("Accepted ");
       loadRequests(userSub);
       loadSharedWithMe(userSub);
     } catch (e) {
       console.log(e);
-      alert("Accept failed ❌");
+      alert("Accept failed ");
     }
   };
 
@@ -404,11 +404,11 @@ export default function App() {
         }),
       });
 
-      alert("Rejected ✅");
+      alert("Rejected ");
       loadRequests(userSub);
     } catch (e) {
       console.log(e);
-      alert("Reject failed ❌");
+      alert("Reject failed ");
     }
   };
 
@@ -422,7 +422,7 @@ export default function App() {
         </header>
 
         <main className="card">
-          <h2>Welcome 👋</h2>
+          <h2>Welcome </h2>
           <p>
             <b>Secure login for file upload/download/share</b>
           </p>
@@ -498,7 +498,7 @@ export default function App() {
       <header className="header">
         <h1>Dashboard</h1>
         <p style={{ opacity: 0.9 }}>
-          Welcome back ✅ <br />
+          Welcome back  <br />
           <span style={{ fontSize: "13px", opacity: 0.8 }}>
             {userEmail || userSub}
           </span>
@@ -506,7 +506,7 @@ export default function App() {
       </header>
 
       <main className="card">
-        {/* ✅ Tabs */}
+        {/* Tabs */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "14px" }}>
           <button className={`btn ${activeTab === "myfiles" ? "" : "secondary"}`} onClick={() => setActiveTab("myfiles")}>
             My Files
@@ -533,7 +533,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* ✅ My Files */}
+        {/*  My Files */}
         {activeTab === "myfiles" && (
           <>
             <h2>My Files</h2>
@@ -643,7 +643,7 @@ export default function App() {
           </>
         )}
 
-        {/* ✅ Requests */}
+        {/*  Requests */}
         {activeTab === "requests" && (
           <div style={{ textAlign: "left" }}>
             <h2>Share Requests</h2>
@@ -683,7 +683,7 @@ export default function App() {
                         </button>
                       </div>
                     ) : (
-                      <div style={{ marginTop: "10px", opacity: 0.8, fontSize: "13px" }}>Action taken ✅</div>
+                      <div style={{ marginTop: "10px", opacity: 0.8, fontSize: "13px" }}>Action taken </div>
                     )}
                   </div>
                 ))
@@ -692,7 +692,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ✅ Shared with me */}
+        {/*  Shared with me */}
         {activeTab === "shared" && (
           <div style={{ textAlign: "left" }}>
             <h2>Shared With Me</h2>
@@ -732,7 +732,7 @@ export default function App() {
                           window.open(urlRes.url.toString(), "_blank");
                         } catch (e) {
                           console.log(e);
-                          alert("Cannot open shared file ❌");
+                          alert("Cannot open shared file ");
                         }
                       }}
                     >
@@ -754,7 +754,7 @@ export default function App() {
         <p>Secure Cloud Portal • AWS</p>
       </footer>
 
-      {/* ✅ Preview Modal */}
+      {/* Preview Modal */}
       {previewOpen && (
         <div className="modalOverlay" onClick={() => setPreviewOpen(false)}>
           <div className="modalCard" onClick={(e) => e.stopPropagation()}>
@@ -798,7 +798,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ✅ Share Modal */}
+      {/* Share Modal */}
       {shareModalOpen && (
         <div className="modalOverlay" onClick={() => setShareModalOpen(false)}>
           <div className="modalCard" onClick={(e) => e.stopPropagation()}>
