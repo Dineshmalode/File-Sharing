@@ -11,8 +11,8 @@ const awsconfig = {
           domain: "ap-south-1stfmvl7aq.auth.ap-south-1.amazoncognito.com",
           scopes: ["openid", "email", "profile"],
 
-          redirectSignIn: ["https://file-sharing-app-with-aws-cloud.vercel.app/"],
-          redirectSignOut: ["https://file-sharing-app-with-aws-cloud.vercel.app/"],
+          redirectSignIn: ["http://localhost:5173/"],
+          redirectSignOut: ["http://localhost:5173/"],
           responseType: "code",
         },
       },

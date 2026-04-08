@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 import { Hub } from "aws-amplify/utils";
@@ -8,13 +8,13 @@ import {
   signInWithRedirect,
   signOut,
   getCurrentUser,
+  fetchUserAttributes,
   fetchAuthSession,
 } from "aws-amplify/auth";
 
-// ✅ API Gateway URL
 const API_BASE = "https://rxr3r0mmt8.execute-api.eu-north-1.amazonaws.com";
 
-// ✅ helpers
+// ------------ helpers ------------
 const humanFileSize = (bytes) => {
   if (!bytes && bytes !== 0) return "";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -35,41 +35,39 @@ const safeJoinFolder = (folder, name) => {
   return `${folder.replace(/\/+$/g, "")}/${clean}`;
 };
 
+// ------------ component ------------
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // ✅ user identity
   const [userSub, setUserSub] = useState("");
   const [userEmail, setUserEmail] = useState("");
 
-  // UI states
   const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // File list
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
-  // ✅ Folder System
+  // folder
   const [currentFolder, setCurrentFolder] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
 
-  // ✅ Search + Sort
+  // search/sort
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("latest");
 
-  // ✅ Preview
+  // preview
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewType, setPreviewType] = useState("");
 
-  // ✅ Sharing Feature states
+  // sharing
   const [activeTab, setActiveTab] = useState("myfiles"); // myfiles | requests | shared
-
   const [usersList, setUsersList] = useState([]);
+  const [userSearch, setUserSearch] = useState("");
   const [usersLoading, setUsersLoading] = useState(false);
 
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -82,7 +80,7 @@ export default function App() {
   const [sharedWithMe, setSharedWithMe] = useState([]);
   const [sharedLoading, setSharedLoading] = useState(false);
 
-  // ✅ API helper
+  // -------- API helper --------
   const api = async (path, options = {}) => {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { "Content-Type": "application/json" },
@@ -96,26 +94,7 @@ export default function App() {
     return res.json();
   };
 
-  // ✅ Load files
-  const loadFiles = async (sub, folder = "") => {
-    try {
-      if (!sub) return;
-      setLoadingFiles(true);
-
-      const folderPrefix = folder ? `${folder.replace(/\/+$/g, "")}/` : "";
-      const result = await list({
-        path: `uploads/${sub}/${folderPrefix}`,
-      });
-
-      setFiles(result.items || []);
-    } catch (err) {
-      console.log("List files error:", err);
-    } finally {
-      setLoadingFiles(false);
-    }
-  };
-
-  // ✅ save user into DynamoDB Users table
+  // -------- DynamoDB User register --------
   const upsertUserToDB = async (sub, email) => {
     try {
       if (!sub) return;
@@ -132,30 +111,47 @@ export default function App() {
     }
   };
 
-  // ✅ load users list
-  const loadUsers = async (subParam) => {
+  // -------- load files --------
+  const loadFiles = async (sub, folder = "") => {
     try {
-      const mySub = subParam || userSub;
-      if (!mySub) return;
+      if (!sub) return;
+      setLoadingFiles(true);
 
+      const folderPrefix = folder ? `${folder.replace(/\/+$/g, "")}/` : "";
+      const result = await list({
+      path: `uploads/${userEmail}/${folderPrefix}`,
+      });
+
+      setFiles(result.items || []);
+    } catch (err) {
+      console.log("List files error:", err);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  // -------- load users --------
+  const loadUsers = async (sub = userSub) => {
+    try {
+      if (!sub) return;
       setUsersLoading(true);
       const data = await api("/users/list");
       const arr = data.users || [];
-      setUsersList(arr.filter((u) => u.userSub !== mySub)); // exclude me
+      setUsersList(arr.filter((u) => u.userSub !== sub));
     } catch (e) {
       console.log("loadUsers error:", e);
-      alert("Users list loading failed ❌");
+      alert("Users list failed ❌ (CORS / API route)");
     } finally {
       setUsersLoading(false);
     }
   };
 
-  // ✅ requests for me
-  const loadRequests = async (subParam) => {
+  // -------- load requests --------
+  const loadRequests = async (sub = userSub) => {
     try {
-      if (!subParam) return;
+      if (!sub) return;
       setReqLoading(true);
-      const data = await api(`/share/requests?toSub=${encodeURIComponent(subParam)}`);
+      const data = await api(`/share/requests?toSub=${encodeURIComponent(sub)}`);
       setRequests(data.requests || []);
     } catch (e) {
       console.log("loadRequests error:", e);
@@ -164,12 +160,12 @@ export default function App() {
     }
   };
 
-  // ✅ shared with me
-  const loadSharedWithMe = async (subParam) => {
+  // -------- load shared with me --------
+  const loadSharedWithMe = async (sub = userSub) => {
     try {
-      if (!subParam) return;
+      if (!sub) return;
       setSharedLoading(true);
-      const data = await api(`/share/shared-with-me?toSub=${encodeURIComponent(subParam)}`);
+      const data = await api(`/share/shared-with-me?toSub=${encodeURIComponent(sub)}`);
       setSharedWithMe(data.items || []);
     } catch (e) {
       console.log("loadSharedWithMe error:", e);
@@ -178,29 +174,24 @@ export default function App() {
     }
   };
 
-  // ✅ On App Load → check Amplify current session
+  // ✅ FINAL auth init (safe + stable)
   useEffect(() => {
     let unsub;
 
-    const init = async () => {
+    const initAuth = async () => {
       try {
-        // ✅ finish redirect flow + session
-        const session = await fetchAuthSession();
+        const session = await fetchAuthSession(); // finalize oauth redirect
 
-        const user = await getCurrentUser();
-        const sub = user?.userId;
-        if (!sub) throw new Error("No sub");
+const user = await getCurrentUser();
+const sub = user?.userId;
 
-        // ✅ MOST RELIABLE: email from token payload
-        const idPayload = session?.tokens?.idToken?.payload || {};
-        const accessPayload = session?.tokens?.accessToken?.payload || {};
+const email =
+  session?.tokens?.idToken?.payload?.email ||
+  "";
 
-        const email =
-          idPayload.email ||
-          accessPayload.email ||
-          idPayload["cognito:username"] ||
-          user?.username ||
-          "";
+        if (!sub) throw new Error("No userId");
+
+      
 
         setIsLoggedIn(true);
         setUserSub(sub);
@@ -213,14 +204,14 @@ export default function App() {
         await loadRequests(sub);
         await loadSharedWithMe(sub);
       } catch (e) {
+        console.log("INIT AUTH FAILED:", e);
         setIsLoggedIn(false);
       }
     };
 
-    // ✅ Listen auth events
     unsub = Hub.listen("auth", ({ payload }) => {
       if (payload?.event === "signedIn" || payload?.event === "signInWithRedirect") {
-        init();
+        initAuth();
       }
       if (payload?.event === "signedOut") {
         setIsLoggedIn(false);
@@ -230,25 +221,19 @@ export default function App() {
       }
     });
 
-    init();
+    initAuth();
 
     return () => {
       if (unsub) unsub();
     };
   }, []);
 
-  // ✅ auto refresh requests when userSub becomes available
-  useEffect(() => {
-    if (!userSub) return;
-    loadRequests(userSub);
-    loadSharedWithMe(userSub);
-  }, [userSub]);
-
-  // ✅ LOGIN via Amplify Hosted UI
+  // ✅ login
   const handleLogin = async () => {
     try {
       await signInWithRedirect({ provider: "COGNITO" });
     } catch (e) {
+      // already signed-in -> just reload
       if ((e?.message || "").toLowerCase().includes("already")) {
         window.location.reload();
         return;
@@ -258,26 +243,25 @@ export default function App() {
     }
   };
 
-  // ✅ LOGOUT (Localhost)
+  // ✅ logout
   const handleLogout = async () => {
     try {
       await signOut({ global: true });
-      window.location.href = "https://file-sharing-app-with-aws-cloud.vercel.app/";
+      window.location.href = "http://localhost:5173/";
     } catch (e) {
-      console.log(e);
+      console.log("Logout error:", e);
       alert("Logout failed ❌");
     }
   };
 
   // file picker
   const openFilePicker = () => fileInputRef.current?.click();
-
   const onFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) setSelectedFile(file);
   };
 
-  // ✅ upload
+  // upload
   const uploadToS3 = async () => {
     if (!selectedFile) return;
 
@@ -285,9 +269,9 @@ export default function App() {
       setUploading(true);
 
       const targetPath = safeJoinFolder(
-        safeJoinFolder(`uploads/${userSub}`, currentFolder),
-        selectedFile.name
-      );
+      safeJoinFolder(`uploads/${userEmail}`, currentFolder),
+      selectedFile.name
+    );
 
       const result = await uploadData({
         path: targetPath,
@@ -306,8 +290,50 @@ export default function App() {
     }
   };
 
-  // ✅ preview
+const downloadFile = async (path, name) => {
+  try {
+    const urlRes = await getUrl({ path });
+    const url = urlRes.url.toString();
+
+    const response = await fetch(url);
+    const blob = await response.blob();
+
+    const a = document.createElement("a");
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    a.href = blobUrl;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+
+    a.remove();
+    window.URL.revokeObjectURL(blobUrl);
+
+  } catch (e) {
+    console.log(e);
+    alert("Download failed ❌");
+  }
+};
+
+
+  // preview
   const openPreview = async (fileItem) => {
+    const downloadFile = async (path, name) => {
+  try {
+    const urlRes = await getUrl({ path });
+    const url = urlRes.url.toString();
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    console.log(e);
+    alert("Download failed");
+  }
+};
     try {
       setPreviewLoading(true);
       setPreviewOpen(true);
@@ -319,7 +345,6 @@ export default function App() {
       setPreviewUrl(url);
 
       const name = (fileItem._name || "").toLowerCase();
-
       if (/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/.test(name)) setPreviewType("image");
       else if (/\.(pdf)$/.test(name)) setPreviewType("pdf");
       else if (/\.(mp4|webm|ogg)$/.test(name)) setPreviewType("video");
@@ -334,28 +359,42 @@ export default function App() {
       setPreviewLoading(false);
     }
   };
+  const generateShareLink = async (path) => {
+  try {
+    const urlRes = await getUrl({ path });
+    const link = urlRes.url.toString();
 
-  // ✅ share modal
+    await navigator.clipboard.writeText(link);
+
+    alert("Share link copied to clipboard ✅");
+
+  } catch (e) {
+    console.log(e);
+    alert("Failed to generate share link ❌");
+  }
+};
+
+  // share modal open
   const openShareModal = async (fileItem) => {
     setShareFile(fileItem);
     setShareModalOpen(true);
-    await loadUsers(userSub);
+    await loadUsers();
   };
 
+  // send request
   const sendShareRequest = async (u) => {
     if (!shareFile) return;
 
     try {
       setShareSending(true);
 
-      const fileName =
-        shareFile._name || shareFile.path.replace(`uploads/${userSub}/`, "");
+      const fileName = shareFile._name || shareFile.path.replace(`uploads/${userSub}/`, "");
 
       await api("/share/request", {
         method: "POST",
         body: JSON.stringify({
           fromSub: userSub,
-          fromEmail: userEmail || userSub, // ✅ FIXED (no unknown)
+          fromEmail: userEmail,
           toSub: u.userSub,
           toEmail: u.email,
           filePath: shareFile.path,
@@ -365,8 +404,6 @@ export default function App() {
 
       alert(`Request sent ✅ to ${u.email}`);
       setShareModalOpen(false);
-
-      loadRequests(userSub);
     } catch (e) {
       console.log(e);
       alert("Share request failed ❌");
@@ -375,6 +412,7 @@ export default function App() {
     }
   };
 
+  // accept/reject
   const acceptReq = async (req) => {
     try {
       await api("/share/accept", {
@@ -386,8 +424,8 @@ export default function App() {
       });
 
       alert("Accepted ✅");
-      loadRequests(userSub);
-      loadSharedWithMe(userSub);
+      loadRequests();
+      loadSharedWithMe();
     } catch (e) {
       console.log(e);
       alert("Accept failed ❌");
@@ -405,16 +443,22 @@ export default function App() {
       });
 
       alert("Rejected ✅");
-      loadRequests(userSub);
+      loadRequests();
     } catch (e) {
       console.log(e);
       alert("Reject failed ❌");
     }
   };
 
-  // ✅ Landing page
+  // ---------- LOGIN PAGE ----------
   if (!isLoggedIn) {
     return (
+    <>
+    <div className="bg"></div>
+
+    <div className="circle circle1"></div>
+    <div className="circle circle2"></div>
+    <div className="circle circle3"></div>
       <div className="page">
         <header className="header">
           <h1>Cloud File Storage & Sharing</h1>
@@ -422,7 +466,7 @@ export default function App() {
         </header>
 
         <main className="card">
-          <h2>Welcome 👋</h2>
+          <h2>Welcome </h2>
           <p>
             <b>Secure login for file upload/download/share</b>
           </p>
@@ -433,23 +477,22 @@ export default function App() {
         </main>
 
         <footer className="footer">
-          <p>Made by Dinesh Malode</p>
-          <p> • AWS Project</p>
+          <p></p>
+          <p> • AWS Project •</p>
         </footer>
       </div>
+      </>
     );
   }
 
-  // ✅ dashboard view parsing
-  const folderPrefixForUI = currentFolder
-    ? `${currentFolder.replace(/\/+$/g, "")}/`
-    : "";
+  // ---------- DASHBOARD ----------
+  const folderPrefixForUI = currentFolder ? `${currentFolder.replace(/\/+$/g, "")}/` : "";
 
   const folderSet = new Set();
   const fileItems = [];
 
   (files || []).forEach((item) => {
-    const relative = item.path.replace(`uploads/${userSub}/`, "");
+    const relative = item.path.replace(`uploads/${userEmail}/`, "");
 
     const rel =
       folderPrefixForUI && relative.startsWith(folderPrefixForUI)
@@ -483,7 +526,7 @@ export default function App() {
     if (sortBy === "name_az") return nameA.localeCompare(nameB);
     if (sortBy === "name_za") return nameB.localeCompare(nameA);
     if (sortBy === "size_asc") return sizeA - sizeB;
-    if (sortBy === "size_desc") return sizeB - timeA;
+    if (sortBy === "size_desc") return sizeB - sizeA;
     return timeB - timeA;
   });
 
@@ -494,19 +537,27 @@ export default function App() {
   const pendingReq = (requests || []).filter((r) => r.status === "PENDING");
 
   return (
+    <>
+<div className="bg"></div>
+
+<div className="circle circle1"></div>
+<div className="circle circle2"></div>
+<div className="circle circle3"></div>
+
+<div className="page"></div>
     <div className="page">
       <header className="header">
         <h1>Dashboard</h1>
         <p style={{ opacity: 0.9 }}>
-          Welcome back ✅ <br />
+          Welcome Back  <br />
           <span style={{ fontSize: "13px", opacity: 0.8 }}>
-            {userEmail || userSub}
+            {userEmail}
           </span>
         </p>
       </header>
 
       <main className="card">
-        {/* ✅ Tabs */}
+        {/* Tabs */}
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "14px" }}>
           <button className={`btn ${activeTab === "myfiles" ? "" : "secondary"}`} onClick={() => setActiveTab("myfiles")}>
             My Files
@@ -516,7 +567,7 @@ export default function App() {
             className={`btn ${activeTab === "requests" ? "" : "secondary"}`}
             onClick={() => {
               setActiveTab("requests");
-              loadRequests(userSub);
+              loadRequests();
             }}
           >
             Requests ({pendingReq.length})
@@ -526,19 +577,19 @@ export default function App() {
             className={`btn ${activeTab === "shared" ? "" : "secondary"}`}
             onClick={() => {
               setActiveTab("shared");
-              loadSharedWithMe(userSub);
+              loadSharedWithMe();
             }}
           >
             Shared With Me ({sharedWithMe.length})
           </button>
         </div>
 
-        {/* ✅ My Files */}
+        {/* My Files */}
         {activeTab === "myfiles" && (
           <>
             <h2>My Files</h2>
 
-            {/* Storage usage */}
+            {/* usage */}
             <div className="softCard" style={{ marginTop: "14px", textAlign: "left" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
                 <div style={{ fontWeight: 800 }}>Storage Usage</div>
@@ -552,6 +603,129 @@ export default function App() {
               </div>
               <div style={{ marginTop: "8px", fontSize: "13px", opacity: 0.85 }}>
                 {usagePct}% used
+              </div>
+            </div>
+
+            {/* folder nav */}
+            <div className="softCard" style={{ marginTop: "14px", textAlign: "left" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontWeight: 900 }}>Current Folder</div>
+                  <div style={{ opacity: 0.8, fontSize: "13px" }}>
+                    uploads/{userEmail}/{currentFolder ? currentFolder + "/" : ""}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    className="btn secondary"
+                    disabled={!currentFolder}
+                    onClick={() => {
+                      const parts = currentFolder.split("/").filter(Boolean);
+                      parts.pop();
+                      const upFolder = parts.join("/");
+                      setCurrentFolder(upFolder);
+                      loadFiles(userSub, upFolder);
+                    }}
+                  >
+                    ⬅ Back
+                  </button>
+
+                  <button
+                    className="btn secondary"
+                    onClick={() => {
+                      setCurrentFolder("");
+                      loadFiles(userSub, "");
+                    }}
+                  >
+                    🏠 Home
+                  </button>
+                </div>
+              </div>
+
+              {/* create folder */}
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "12px" }}>
+                <input
+                  className="textInput"
+                  value={newFolderName}
+                  placeholder="New folder name"
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                />
+                <button
+                  className="btn"
+                  onClick={async () => {
+                    const folder = (newFolderName || "").trim();
+                    if (!folder) return;
+
+                    try {
+                      setUploading(true);
+
+                      const folderPath = safeJoinFolder(
+                      safeJoinFolder(`uploads/${userEmail}`, currentFolder),
+                      folder
+                    );
+
+                      await uploadData({
+                        path: `${folderPath.replace(/\/+$/g, "")}/.keep`,
+                        data: new Blob([""], { type: "text/plain" }),
+                      }).result;
+
+                      setNewFolderName("");
+                      loadFiles(userSub, currentFolder);
+                    } catch (e) {
+                      console.log(e);
+                      alert("Create folder failed ❌");
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  disabled={uploading || !newFolderName.trim()}
+                >
+                  Create Folder
+                </button>
+              </div>
+
+              {/* folder list */}
+              <div style={{ marginTop: "12px" }}>
+                {folders.length === 0 ? (
+                  <div style={{ opacity: 0.8, fontSize: "13px" }}>No folders found.</div>
+                ) : (
+                  <div className="folderGrid">
+                    {folders.map((folder) => (
+                      <button
+                        key={folder}
+                        className="folderItem"
+                        onClick={() => {
+                          const nextFolder = safeJoinFolder(currentFolder, folder);
+                          setCurrentFolder(nextFolder);
+                          loadFiles(userSub, nextFolder);
+                        }}
+                      >
+                        📁 {folder}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Search & Sort */}
+            <div className="softCard" style={{ marginTop: "14px", textAlign: "left" }}>
+              <div style={{ fontWeight: 900, marginBottom: "10px" }}>Search & Sort</div>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <input
+                  className="textInput"
+                  placeholder="Search file name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <select className="selectInput" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                  <option value="latest">Latest</option>
+                  <option value="name_az">Name A-Z</option>
+                  <option value="name_za">Name Z-A</option>
+                  <option value="size_asc">Size Small → Large</option>
+                  <option value="size_desc">Size Large → Small</option>
+                </select>
               </div>
             </div>
 
@@ -580,7 +754,7 @@ export default function App() {
               </button>
 
               <div style={{ marginTop: "12px" }}>
-                {sortedFiles.length === 0 ? (
+                {sortedFiles.length === 0 && folders.length === 0 ? (
                   <p style={{ opacity: 0.8 }}>No files uploaded yet.</p>
                 ) : (
                   sortedFiles.map((f) => (
@@ -599,7 +773,9 @@ export default function App() {
                     >
                       <div style={{ flex: 1, overflow: "hidden" }}>
                         <div style={{ fontWeight: "bold", wordBreak: "break-all" }}>{f._name}</div>
-                        <div style={{ opacity: 0.75, fontSize: "13px" }}>{f.size ? humanFileSize(f.size) : ""}</div>
+                        <div style={{ opacity: 0.75, fontSize: "13px" }}>
+                          {f.size ? humanFileSize(f.size) : ""}
+                        </div>
                       </div>
 
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -614,26 +790,25 @@ export default function App() {
                         <button
                           className="btn"
                           style={{ padding: "8px 10px" }}
-                          onClick={async () => {
-                            const urlRes = await getUrl({ path: f.path });
-                            window.open(urlRes.url.toString(), "_blank");
-                          }}
+                          onClick={() => downloadFile(f.path, f._name)}
                         >
                           Download
                         </button>
 
                         <button
-                          className="btn"
-                          style={{ background: "#ef4444", padding: "8px 10px" }}
-                          onClick={async () => {
-                            const ok = confirm("Delete file?");
-                            if (!ok) return;
-                            await remove({ path: f.path });
-                            loadFiles(userSub, currentFolder);
-                          }}
-                        >
+                            className="btn"
+                            style={{ background: "#ef4444", padding: "8px 10px" }}
+                            onClick={async () => {
+                              const ok = confirm("Delete file?");
+                              if (!ok) return;
+
+                              await remove({ path: f.path });
+
+                              loadFiles(userSub, currentFolder);
+                            }}
+                          >
                           Delete
-                        </button>
+                          </button>
                       </div>
                     </div>
                   ))
@@ -643,11 +818,11 @@ export default function App() {
           </>
         )}
 
-        {/* ✅ Requests */}
+        {/* Requests */}
         {activeTab === "requests" && (
           <div style={{ textAlign: "left" }}>
             <h2>Share Requests</h2>
-            <button className="btn" onClick={() => loadRequests(userSub)} disabled={reqLoading}>
+            <button className="btn" onClick={loadRequests} disabled={reqLoading}>
               {reqLoading ? "Loading..." : "Refresh Requests"}
             </button>
 
@@ -683,7 +858,9 @@ export default function App() {
                         </button>
                       </div>
                     ) : (
-                      <div style={{ marginTop: "10px", opacity: 0.8, fontSize: "13px" }}>Action taken ✅</div>
+                      <div style={{ marginTop: "10px", opacity: 0.8, fontSize: "13px" }}>
+                        Action taken ✅
+                      </div>
                     )}
                   </div>
                 ))
@@ -692,11 +869,11 @@ export default function App() {
           </div>
         )}
 
-        {/* ✅ Shared with me */}
+        {/* Shared */}
         {activeTab === "shared" && (
           <div style={{ textAlign: "left" }}>
             <h2>Shared With Me</h2>
-            <button className="btn" onClick={() => loadSharedWithMe(userSub)} disabled={sharedLoading}>
+            <button className="btn" onClick={loadSharedWithMe} disabled={sharedLoading}>
               {sharedLoading ? "Loading..." : "Refresh Shared Files"}
             </button>
 
@@ -724,20 +901,31 @@ export default function App() {
                       <div style={{ opacity: 0.8, fontSize: "13px" }}>From: {it.fromEmail || it.fromSub}</div>
                     </div>
 
-                    <button
-                      className="btn"
-                      onClick={async () => {
-                        try {
+                    <div style={{ display: "flex", gap: "8px" }}>
+
+                      <button
+                        className="btn secondary"
+                        onClick={() =>
+                          openPreview({
+                            path: it.filePath,
+                            _name: it.fileName
+                          })
+                        }
+                      >
+                      Preview
+                      </button>
+
+                      <button
+                        className="btn"
+                        onClick={async () => {
                           const urlRes = await getUrl({ path: it.filePath });
                           window.open(urlRes.url.toString(), "_blank");
-                        } catch (e) {
-                          console.log(e);
-                          alert("Cannot open shared file ❌");
-                        }
-                      }}
-                    >
-                      Open / Download
-                    </button>
+                        }}
+                      >
+                      Download
+                      </button>
+
+                    </div>
                   </div>
                 ))
               )}
@@ -751,10 +939,11 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <p>Secure Cloud Portal • AWS</p>
+        <p>Secure Cloud Portal</p>
+        <p>With AWS </p>
       </footer>
 
-      {/* ✅ Preview Modal */}
+      {/* Preview Modal */}
       {previewOpen && (
         <div className="modalOverlay" onClick={() => setPreviewOpen(false)}>
           <div className="modalCard" onClick={(e) => e.stopPropagation()}>
@@ -798,7 +987,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ✅ Share Modal */}
+      {/* Share Modal */}
       {shareModalOpen && (
         <div className="modalOverlay" onClick={() => setShareModalOpen(false)}>
           <div className="modalCard" onClick={(e) => e.stopPropagation()}>
@@ -810,23 +999,63 @@ export default function App() {
             </div>
 
             <div className="modalBody" style={{ textAlign: "left" }}>
-              <h3 style={{ marginTop: 0 }}>Select user</h3>
+             <h3 style={{ marginTop: 0 }}>Select user</h3>
 
-              <button className="btn secondary" onClick={() => loadUsers(userSub)} disabled={usersLoading}>
-                {usersLoading ? "Loading..." : "Refresh Users"}
-              </button>
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "10px",
+    gap: "10px",
+  }}
+>
+  <div style={{ display: "flex", gap: "10px" }}>
+    <button
+      className="btn secondary"
+      onClick={loadUsers}
+      disabled={usersLoading}
+    >
+      {usersLoading ? "Loading..." : "Refresh Users"}
+    </button>
 
-              <div style={{ marginTop: "12px" }}>
+    <input
+      className="textInput"
+      placeholder="Search user email..."
+      value={userSearch}
+      onChange={(e) => setUserSearch(e.target.value)}
+    />
+  </div>
+
+  <button
+    className="btn"
+    onClick={() => generateShareLink(shareFile.path)}
+  >
+    Share via Link
+  </button>
+</div>
+
+              <div
+  style={{
+    marginTop: "12px",
+    maxHeight: "300px",
+    overflowY: "auto"
+  }}
+>
                 {usersList.length === 0 ? (
-                  <p style={{ opacity: 0.8 }}>No users found. (Other users must login at least 1 time)</p>
+                  <p style={{ opacity: 0.8 }}>No users found. (Other users must login once)</p>
                 ) : (
-                  usersList.map((u) => (
+                  usersList
+  .filter((u) =>
+    u.email.toLowerCase().includes(userSearch.toLowerCase())
+  )
+  .map((u) => (
                     <div
                       key={u.userSub}
                       style={{
                         padding: "10px",
                         borderRadius: "12px",
-                        border: "1px solid rgba(255,255,255,0.15)",
+                        border: "1px solid rgba(254, 254, 254, 0.15)",
                         marginBottom: "10px",
                         display: "flex",
                         justifyContent: "space-between",
@@ -836,7 +1065,7 @@ export default function App() {
                     >
                       <div>
                         <div style={{ fontWeight: 900 }}>{u.email}</div>
-                        <div style={{ fontSize: "13px", opacity: 0.75 }}>sub: {u.userSub}</div>
+                        {/* <div style={{ fontSize: "13px", opacity: 0.75 }}>sub: {u.userSub}</div> */}
                       </div>
 
                       <button className="btn" disabled={shareSending} onClick={() => sendShareRequest(u)}>
@@ -851,5 +1080,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </>
   );
 }
