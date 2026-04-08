@@ -140,11 +140,7 @@ export default function App() {
       setUsersList(arr.filter((u) => u.userSub !== sub));
     } catch (e) {
       console.log("loadUsers error:", e);
-<<<<<<< HEAD
       alert("Users list failed ❌ (CORS / API route)");
-=======
-      alert("Users list loading failed ");
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
     } finally {
       setUsersLoading(false);
     }
@@ -253,13 +249,8 @@ const email =
       await signOut({ global: true });
       window.location.href = "http://localhost:5173/";
     } catch (e) {
-<<<<<<< HEAD
       console.log("Logout error:", e);
       alert("Logout failed ❌");
-=======
-      console.log(e);
-      alert("Logout failed ");
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
     }
   };
 
@@ -288,12 +279,12 @@ const email =
       }).result;
 
       setSelectedFile(null);
-      alert("Uploaded....!\n" + result.path);
+      alert("Uploaded ✅\n" + result.path);
 
       loadFiles(userSub, currentFolder);
     } catch (err) {
       console.log("Upload error:", err);
-      alert("Upload failed");
+      alert("Upload failed ❌");
     } finally {
       setUploading(false);
     }
@@ -362,7 +353,7 @@ const downloadFile = async (path, name) => {
       else setPreviewType("other");
     } catch (e) {
       console.log(e);
-      alert("Preview failed ");
+      alert("Preview failed ❌");
       setPreviewOpen(false);
     } finally {
       setPreviewLoading(false);
@@ -415,7 +406,7 @@ const downloadFile = async (path, name) => {
       setShareModalOpen(false);
     } catch (e) {
       console.log(e);
-      alert("Share request failed ");
+      alert("Share request failed ❌");
     } finally {
       setShareSending(false);
     }
@@ -432,18 +423,12 @@ const downloadFile = async (path, name) => {
         }),
       });
 
-<<<<<<< HEAD
       alert("Accepted ✅");
       loadRequests();
       loadSharedWithMe();
-=======
-      alert("Accepted ");
-      loadRequests(userSub);
-      loadSharedWithMe(userSub);
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
     } catch (e) {
       console.log(e);
-      alert("Accept failed ");
+      alert("Accept failed ❌");
     }
   };
 
@@ -457,16 +442,11 @@ const downloadFile = async (path, name) => {
         }),
       });
 
-<<<<<<< HEAD
       alert("Rejected ✅");
       loadRequests();
-=======
-      alert("Rejected ");
-      loadRequests(userSub);
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
     } catch (e) {
       console.log(e);
-      alert("Reject failed ");
+      alert("Reject failed ❌");
     }
   };
 
@@ -569,11 +549,7 @@ const downloadFile = async (path, name) => {
       <header className="header">
         <h1>Dashboard</h1>
         <p style={{ opacity: 0.9 }}>
-<<<<<<< HEAD
           Welcome Back  <br />
-=======
-          Welcome back  <br />
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
           <span style={{ fontSize: "13px", opacity: 0.8 }}>
             {userEmail}
           </span>
@@ -608,11 +584,7 @@ const downloadFile = async (path, name) => {
           </button>
         </div>
 
-<<<<<<< HEAD
         {/* My Files */}
-=======
-        {/*  My Files */}
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
         {activeTab === "myfiles" && (
           <>
             <h2>My Files</h2>
@@ -846,11 +818,7 @@ const downloadFile = async (path, name) => {
           </>
         )}
 
-<<<<<<< HEAD
         {/* Requests */}
-=======
-        {/*  Requests */}
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
         {activeTab === "requests" && (
           <div style={{ textAlign: "left" }}>
             <h2>Share Requests</h2>
@@ -890,13 +858,9 @@ const downloadFile = async (path, name) => {
                         </button>
                       </div>
                     ) : (
-<<<<<<< HEAD
                       <div style={{ marginTop: "10px", opacity: 0.8, fontSize: "13px" }}>
                         Action taken ✅
                       </div>
-=======
-                      <div style={{ marginTop: "10px", opacity: 0.8, fontSize: "13px" }}>Action taken </div>
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
                     )}
                   </div>
                 ))
@@ -905,11 +869,7 @@ const downloadFile = async (path, name) => {
           </div>
         )}
 
-<<<<<<< HEAD
         {/* Shared */}
-=======
-        {/*  Shared with me */}
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
         {activeTab === "shared" && (
           <div style={{ textAlign: "left" }}>
             <h2>Shared With Me</h2>
@@ -960,23 +920,12 @@ const downloadFile = async (path, name) => {
                         onClick={async () => {
                           const urlRes = await getUrl({ path: it.filePath });
                           window.open(urlRes.url.toString(), "_blank");
-<<<<<<< HEAD
                         }}
                       >
                       Download
                       </button>
 
                     </div>
-=======
-                        } catch (e) {
-                          console.log(e);
-                          alert("Cannot open shared file ");
-                        }
-                      }}
-                    >
-                      Open / Download
-                    </button>
->>>>>>> 0bb081c368a92b3b5cf08b78fba40a134e86cc10
                   </div>
                 ))
               )}
@@ -1116,7 +1065,7 @@ const downloadFile = async (path, name) => {
                     >
                       <div>
                         <div style={{ fontWeight: 900 }}>{u.email}</div>
-                        {/* <div style={{ fontSize: "13px", opacity: 0.75 }}>sub: {u.userSub}</div> */}
+                        <div style={{ fontSize: "13px", opacity: 0.75 }}>sub: {u.userSub}</div>
                       </div>
 
                       <button className="btn" disabled={shareSending} onClick={() => sendShareRequest(u)}>
