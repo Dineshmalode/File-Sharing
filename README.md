@@ -7,7 +7,11 @@ This project allows users to authenticate securely, upload files to cloud storag
 ---
 
 ## 🚀 Live Demo
+Initial Demo 
 👉 https://file-sharing-app-with-aws-cloud.vercel.app/
+
+Updated Demo 
+👉 https://file-sharing-rho-pied.vercel.app/
 
 
 ---
